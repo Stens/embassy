@@ -6,6 +6,8 @@ use embassy_futures::join::join;
 use embassy_hal_internal::{into_ref, PeripheralRef};
 pub use embedded_hal_02::spi::{Phase, Polarity};
 
+use crate::reset::Peripherals;
+use crate::reset;
 use crate::dma::{AnyChannel, Channel};
 use crate::gpio::sealed::Pin as _;
 use crate::gpio::{AnyPin, Pin as GpioPin};
@@ -24,6 +26,7 @@ pub struct Config {
     pub frequency: u32,
     pub phase: Phase,
     pub polarity: Polarity,
+    pub slave: bool,
 }
 
 impl Default for Config {
@@ -32,6 +35,7 @@ impl Default for Config {
             frequency: 1_000_000,
             phase: Phase::CaptureOnFirstTransition,
             polarity: Polarity::IdleLow,
+            slave: false
         }
     }
 }
@@ -79,6 +83,11 @@ impl<'d, T: Instance, M: Mode> Spi<'d, T, M> {
     ) -> Self {
         into_ref!(inner);
 
+        let mut r = Peripherals(0);
+        // TODO: make this a match
+        r.set_spi1(true);
+        reset::reset(r);
+        reset::unreset_wait(r);
         let p = inner.regs();
         let (presc, postdiv) = calc_prescs(config.frequency);
 
@@ -192,6 +201,20 @@ impl<'d, T: Instance, M: Mode> Spi<'d, T, M> {
 
         // enable
         p.cr1().write(|w| w.set_sse(true));
+    }
+
+    /// Set master/slave
+    pub fn set_slave(&mut self, slave: bool) {
+        let p = self.inner.regs();
+        unsafe {
+            // disable
+            p.cr1().write(|w| w.set_sse(false));
+
+            p.cr1().modify(|w| w.set_ms(slave));
+
+            // enable
+            p.cr1().write(|w| w.set_sse(true));
+        }
     }
 }
 

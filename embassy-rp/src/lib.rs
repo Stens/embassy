@@ -19,7 +19,7 @@ pub mod i2c;
 pub mod i2c_slave;
 pub mod multicore;
 pub mod pwm;
-mod reset;
+pub mod reset;
 pub mod rom_data;
 pub mod rtc;
 pub mod spi;
