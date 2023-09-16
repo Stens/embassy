@@ -85,7 +85,7 @@ impl<'d, T: Instance, M: Mode> Spi<'d, T, M> {
 
         let mut r = Peripherals(0);
         // TODO: make this a match
-        r.set_spi1(true);
+        r.set_spi0(true);
         reset::reset(r);
         reset::unreset_wait(r);
         let p = inner.regs();
